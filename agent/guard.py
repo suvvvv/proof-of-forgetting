@@ -18,9 +18,9 @@ class Decision:
 
 
 class ArmorGuard:
-    def __init__(self, user_email: str, llm_name: str = "agent", approval_timeout: float = 120.0):
+    def __init__(self, user_email: str, llm_name: str = "agent", approval_timeout: float | None = None):
         self.user_email = user_email
-        self.approval_timeout = approval_timeout
+        self.approval_timeout = approval_timeout or float(os.getenv("APPROVAL_TIMEOUT", "600"))
         client = ArmorIQClient()
         self.session = client.for_user(user_email).start_session(
             SessionOptions(mode="sdk", default_mcp_name=MCP_NAME, llm=llm_name)

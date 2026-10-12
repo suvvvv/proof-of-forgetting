@@ -60,8 +60,8 @@ flowchart LR
 | Intent plan capture + signed token (`start_plan`) | [agent/guard.py](agent/guard.py) `sign_plan` |
 | Per-user scope (`for_user`) | each run is scoped to the requesting user's email |
 | Runtime enforcement (`check`, SDK mode) | [agent/run.py](agent/run.py) `execute`: allow / block / hold on every tool call |
-| Org policy (allow/deny list) | [armoriq.yaml](armoriq.yaml), applied with `armoriq register` |
-| Human approval (`await_approval`) | wired in `execute`. Activates when a *hold* policy is set on `delete_memory` in the console |
+| Org policy | `forget-governance` (console Policy Studio, priority 10): allow recall/compost/get_lessons/send_email, **hold** delete_memory, block export/store/verify, default block. Bootstrap allow/deny list in [armoriq.yaml](armoriq.yaml) |
+| Human approval (`await_approval`) | `delete_memory` is **held** by the `forget-governance` policy. A human approves the plan in **Intent → Held Actions → Needs you**, then the agent continues |
 | Audit trail (`report`) + observability | every executed call is reported, and decisions appear in the ArmorIQ dashboard |
 | Signed token as evidence | [agent/certificate.py](agent/certificate.py) |
 
@@ -86,6 +86,10 @@ armoriq validate --config armoriq.yaml && armoriq register --config armoriq.yaml
 
 python -m demo.app              # demo UI → http://localhost:8800
 ```
+
+In the ArmorIQ console, create the policy described in [How ArmorIQ is used](#how-armoriq-is-used) and target the
+`memory-mcp` server. Each forget run then pauses at `delete_memory` until someone approves the plan under
+**Intent → Held Actions → Needs you** (`APPROVAL_TIMEOUT` seconds, default 600. A timeout means the deletion is refused).
 
 Command-line versions of the same scenarios:
 

@@ -55,7 +55,7 @@ def print_event(e: dict):
             "hold": f"⏸ HELD   {e['tool']}({json.dumps(e['args'])})\n         reason: {e.get('reason')}  policy: {e.get('policy')}",
         }.get(e.get("action"), f"⛔ {e.get('action', 'block').upper()} {e['tool']}({json.dumps(e['args'])})"
                f"\n         reason: {e.get('reason')}  policy: {e.get('policy')}")),
-        "waiting": ("hold", lambda: "         waiting for approval in the ArmorIQ console (Approvals)…"),
+        "waiting": ("hold", lambda: f"         waiting for human approval in ArmorIQ (delegation {e['delegation_id']})…"),
         "approved": ("allow", lambda: "         ✓ approved by a human"),
         "agent": ("bold", lambda: f"\nAGENT: {e['text']}"),
     }.get(e["type"], ("dim", lambda: json.dumps(e)))
