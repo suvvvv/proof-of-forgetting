@@ -9,6 +9,7 @@ Both expose the same small interface:
 
 import json
 import os
+import time
 
 PLAN_TOOL = {
     "name": "submit_plan",
@@ -40,7 +41,9 @@ class GeminiLLM:
 
         self.types = types
         self.client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-        self.model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        self.model = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+        # Free-tier models return 503/429 under load; fall back to a lighter model rather than fail the run.
+        self.fallback = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-flash-lite-latest")
         self.name = self.model
         self.system = system
         self.tools = tools
@@ -58,13 +61,24 @@ class GeminiLLM:
             )
         ]
 
+    def _generate(self, contents, config):
+        from google.genai import errors
+
+        for attempt, model in enumerate([self.model] * 3 + [self.fallback] * 2):
+            try:
+                return self.client.models.generate_content(model=model, contents=contents, config=config)
+            except (errors.ServerError, errors.ClientError) as exc:
+                if getattr(exc, "code", None) not in (429, 500, 503) or attempt == 4:
+                    raise
+                time.sleep(2 * (attempt + 1))
+
     def plan(self, request: str, planner_prompt: str) -> list[dict]:
         t = self.types
-        response = self.client.models.generate_content(
-            model=self.model,
+        response = self._generate(
             contents=[t.Content(role="user", parts=[t.Part(text=request)])],
             config=t.GenerateContentConfig(
                 system_instruction=self.system + "\n\n" + planner_prompt,
+                temperature=0,
                 tools=self._decls(self.tools + [PLAN_TOOL]),
                 tool_config=t.ToolConfig(
                     function_calling_config=t.FunctionCallingConfig(mode="ANY", allowed_function_names=["submit_plan"])
@@ -79,8 +93,7 @@ class GeminiLLM:
 
     def turn(self):
         t = self.types
-        response = self.client.models.generate_content(
-            model=self.model,
+        response = self._generate(
             contents=self.history,
             config=t.GenerateContentConfig(system_instruction=self.system, tools=self._decls(self.tools)),
         )
