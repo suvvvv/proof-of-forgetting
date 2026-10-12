@@ -77,6 +77,13 @@ def export_memory(user_email: str, destination: str) -> dict:
 
 
 @mcp.tool()
+def send_email(to: str, subject: str, body: str) -> dict:
+    """Send an email on the user's behalf. SANDBOX: writes to a local outbox instead of really sending."""
+    store.write_outbox(to, json.dumps({"subject": subject, "body": body}))
+    return {"sent": True, "to": to}
+
+
+@mcp.tool()
 def verify_forgotten(secrets: list[str]) -> dict:
     """Check whether any of the given strings still exist anywhere in storage (memories, lessons,
     outbox, or the raw database file). Used to prove a deletion actually worked."""

@@ -17,6 +17,7 @@ policy:
     - memory-mcp.compost_memory
     - memory-mcp.delete_memory
     - memory-mcp.get_lessons
+    - memory-mcp.send_email
   deny:
     - memory-mcp.export_memory
     - memory-mcp.store_memory
