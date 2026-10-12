@@ -33,8 +33,8 @@ Report clearly what you did and anything you were not allowed to do."""
 
 PLANNER = """Before doing anything, write the COMPLETE plan for the user's request: every memory-mcp
 tool call needed to fully finish it, in order, following the procedures above. Do not stop at a
-review/recall step; include every step through to completion (a one-step plan is almost always
-incomplete). Base the plan only on what the user asked. Call submit_plan once. Do not execute anything yet."""
+review/recall/lookup step: the plan must include the tool that actually carries out the request
+(e.g. send_email when asked to email, delete_memory when asked to forget). Base the plan only on what the user asked. Call submit_plan once. Do not execute anything yet."""
 
 C = {"allow": "\033[32m", "block": "\033[31m", "hold": "\033[33m", "dim": "\033[2m", "bold": "\033[1m", "end": "\033[0m"}
 

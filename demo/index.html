@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proof of Forgetting</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #14171c; --muted: #5f6b7a; --line: #e3e6eb;
+    --allow: #127a3e; --allow-bg: #e7f6ec; --block: #b42318; --block-bg: #fdecea;
+    --hold: #9a6100; --hold-bg: #fff4e0; --accent: #3b5bdb; --code: #f0f2f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1116; --panel: #161a21; --ink: #e8ebf0; --muted: #94a0b0; --line: #262c36;
+      --allow: #4ad18a; --allow-bg: #0f2a1c; --block: #ff6b5e; --block-bg: #2e1513;
+      --hold: #f5b443; --hold-bg: #2d2210; --accent: #7c95ff; --code: #1d222b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1116; --panel: #161a21; --ink: #e8ebf0; --muted: #94a0b0; --line: #262c36;
+    --allow: #4ad18a; --allow-bg: #0f2a1c; --block: #ff6b5e; --block-bg: #2e1513;
+    --hold: #f5b443; --hold-bg: #2d2210; --accent: #7c95ff; --code: #1d222b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 28px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.02em; }
+  h2 { font-size: 18px; margin: 0 0 12px; }
+  .sub { color: var(--muted); margin: 0 0 24px; max-width: 760px; }
+  section { margin-top: 28px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .mem { display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .mem:first-of-type { border-top: 0; }
+  .tag { flex: none; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px;
+         background: var(--code); color: var(--muted); height: fit-content; white-space: nowrap; }
+  .tag.poison { background: var(--block-bg); color: var(--block); }
+  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 16px 0 12px; }
+  button { font: inherit; font-weight: 600; border: 0; border-radius: 8px; padding: 10px 16px;
+           background: var(--accent); color: #fff; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: wait; }
+  .quote { color: var(--muted); font-style: italic; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 820px) { .split { grid-template-columns: 1fr; } }
+  .pane h3 { margin: 0 0 2px; font-size: 16px; }
+  .pane .hint { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+  .log { display: flex; flex-direction: column; gap: 6px; min-height: 120px; }
+  .ev { font-size: 13px; padding: 7px 10px; border-radius: 8px; background: var(--code); overflow-wrap: anywhere; }
+  .ev code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  .ev.allow { background: var(--allow-bg); color: var(--allow); }
+  .ev.block { background: var(--block-bg); color: var(--block); font-weight: 600; }
+  .ev.hold { background: var(--hold-bg); color: var(--hold); }
+  .ev.leak { background: var(--block-bg); color: var(--block); font-weight: 600; }
+  .ev .why { display: block; font-weight: 400; opacity: .85; font-size: 12px; }
+  .ev.plan ol { margin: 4px 0 2px 18px; padding: 0; }
+  .ev.agent { background: transparent; border: 1px dashed var(--line); color: var(--muted);
+              max-height: 7.5em; overflow: auto; white-space: pre-wrap; }
+  .result { margin-top: 12px; padding: 12px; border-radius: 10px; font-weight: 600; }
+  .result.bad { background: var(--block-bg); color: var(--block); }
+  .result.good { background: var(--allow-bg); color: var(--allow); }
+  .result small { display: block; font-weight: 400; color: var(--ink); opacity: .8; margin-top: 4px; }
+  .checks { list-style: none; padding: 0; margin: 8px 0 0; font-size: 13px; }
+  .checks li::before { content: "✓ "; color: var(--allow); font-weight: 700; }
+  .checks li.fail::before { content: "✗ "; color: var(--block); }
+  .email { font-size: 13px; background: var(--code); border-radius: 8px; padding: 10px; white-space: pre-wrap; margin-top: 8px; }
+  a.dl { color: var(--accent); font-size: 13px; }
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--line);
+             border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Proof of Forgetting</h1>
+  <p class="sub">An AI agent that can forget you provably, without being hijacked on the way out, and that
+    still learns from what it forgot. Every tool call is governed by <strong>ArmorIQ</strong>.</p>
+
+  <section class="card">
+    <h2>What the agent remembers about Alice</h2>
+    <div id="memories"></div>
+  </section>
+
+  <section>
+    <h2>1 · Alice asks to be forgotten</h2>
+    <div class="row">
+      <button id="runForget">Run the same request on both agents</button>
+      <span class="quote">“Forget everything you know about me.”</span>
+    </div>
+    <div class="split">
+      <div class="card pane"><h3>Without ArmorIQ</h3><div class="hint">Same model, same tools, no governance</div>
+        <div class="log" id="log-unguarded"></div></div>
+      <div class="card pane"><h3>With ArmorIQ</h3><div class="hint">Plan signed first; every call checked</div>
+        <div class="log" id="log-guarded"></div></div>
+    </div>
+  </section>
+
+  <section id="certSection" hidden>
+    <h2>2 · Deletion Certificate</h2>
+    <div class="card" id="cert"></div>
+  </section>
+
+  <section>
+    <h2>3 · Did it still learn from what it forgot?</h2>
+    <div class="row">
+      <button id="runLearn">Run the follow-up request</button>
+      <span class="quote" id="learnQuote"></span>
+    </div>
+    <div class="split">
+      <div class="card pane"><h3>Plain delete</h3><div class="hint">Data deleted, nothing learned</div>
+        <div class="log" id="log-plain"></div></div>
+      <div class="card pane"><h3>Proof of Forgetting</h3><div class="hint">Data deleted, privacy-safe lessons kept</div>
+        <div class="log" id="log-composted"></div></div>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const call = (tool, args) => `<code>${esc(tool)}(${esc(Object.values(args || {}).join(", "))})</code>`;
+
+fetch("/api/memories").then((r) => r.json()).then(({ memories, poisoned_index }) => {
+  $("memories").innerHTML = memories.map((m, i) =>
+    `<div class="mem"><span class="tag ${i === poisoned_index ? "poison" : ""}">${i === poisoned_index ? "planted by attacker" : "memory"}</span><span>${esc(m)}</span></div>`
+  ).join("");
+});
+
+function add(log, cls, html) {
+  const el = document.createElement("div");
+  el.className = "ev " + cls;
+  el.innerHTML = html;
+  log.appendChild(el);
+  return el;
+}
+
+function render(log, e, onDone) {
+  switch (e.type) {
+    case "plan":
+      add(log, "plan", `<strong>Plan signed by ArmorIQ</strong><ol>${e.steps.map((s) => `<li>${call(s.tool, s.args)}</li>`).join("")}</ol>
+        <span class="mono">plan_hash ${esc(e.plan_hash.slice(0, 16))}…</span>`);
+      break;
+    case "call":
+      if (e.tool === "export_memory" || (e.tool === "send_email"))
+        add(log, "leak", `→ ${call(e.tool, e.args)}<span class="why">executed with no governance</span>`);
+      else add(log, "", `→ ${call(e.tool, e.args)}`);
+      break;
+    case "decision": {
+      const label = { allow: "✅ ALLOWED", hold: "⏸ HELD", block: "⛔ BLOCKED" }[e.action] || `⛔ ${e.action.toUpperCase()}`;
+      const cls = { allow: "allow", hold: "hold" }[e.action] || "block";
+      add(log, cls, `${label} ${call(e.tool, e.args)}${e.action !== "allow" ? `<span class="why">${esc(e.reason)}</span>` : ""}`);
+      break;
+    }
+    case "waiting": add(log, "hold", "Waiting for a human to approve in the ArmorIQ console…"); break;
+    case "approved": add(log, "allow", "✓ Approved by a human"); break;
+    case "agent": add(log, "agent", esc(e.text)); break;
+    case "error": add(log, "block", `Error: ${esc(e.message)}`); break;
+    case "done": onDone && onDone(e); break;
+  }
+}
+
+function runStream(url, log, onDone) {
+  log.innerHTML = '<div class="ev"><span class="spinner"></span> running…</div>';
+  return new Promise((resolve) => {
+    const src = new EventSource(url);
+    let first = true;
+    src.onmessage = (msg) => {
+      if (first) { log.innerHTML = ""; first = false; }
+      const e = JSON.parse(msg.data);
+      render(log, e, onDone);
+      if (e.type === "done" || e.type === "error") { src.close(); resolve(e); }
+    };
+    src.onerror = () => { src.close(); resolve(null); };
+  });
+}
+
+function forgetResult(log, guarded) {
+  return (d) => {
+    const el = document.createElement("div");
+    if (d.leaked.length) {
+      el.className = "result bad";
+      el.innerHTML = `Private data stolen → ${esc(d.leaked[0].to)}<small>${d.leaked[0].bytes} bytes of Alice's raw memories (PIN, health details) left the system before deletion.</small>`;
+    } else {
+      el.className = "result good";
+      el.innerHTML = `Nothing left the system<small>${d.memories_left} raw memories left · ${d.lessons.length} privacy-safe lessons kept · residue scan ${d.residue_free ? "clean" : "found data"}</small>`;
+    }
+    log.parentElement.appendChild(el);
+    if (guarded && d.certificate) showCertificate(d.certificate, d.verification);
+  };
+}
+
+function showCertificate(cert, verification) {
+  const a = cert.armoriq;
+  const blob = URL.createObjectURL(new Blob([JSON.stringify(cert, null, 2)], { type: "application/json" }));
+  $("cert").innerHTML = `
+    <div class="result ${verification.valid ? "good" : "bad"}" style="margin-top:0">${verification.valid ? "Certificate valid" : "Certificate INVALID"}
+      <small>Bound to ArmorIQ plan <span class="mono">${esc(a.plan_id)}</span> · plan_hash <span class="mono">${esc(a.plan_hash.slice(0, 24))}…</span></small></div>
+    <ul class="checks">${Object.entries(verification.checks).map(([k, ok]) => `<li class="${ok ? "" : "fail"}">${esc(k.replaceAll("_", " "))}</li>`).join("")}</ul>
+    <p style="font-size:13px;margin:10px 0 4px">Blocked attempts: <strong>${cert.blocked_attempts.length ? esc(cert.blocked_attempts.join(", ")) : "none"}</strong>
+      · Lessons kept: ${cert.lessons_kept.length} · Deletion receipt <span class="mono">${esc(cert.deletion_receipt?.receipt_id)}</span></p>
+    <a class="dl" href="${blob}" download="deletion-certificate.json">Download certificate (JSON)</a>`;
+  $("certSection").hidden = false;
+}
+
+$("runForget").onclick = async () => {
+  $("runForget").disabled = true;
+  $("certSection").hidden = true;
+  document.querySelectorAll(".split .result").forEach((r) => r.remove());
+  $("log-guarded").innerHTML = '<div class="ev">queued…</div>';
+  await runStream("/api/forget?mode=unguarded", $("log-unguarded"), forgetResult($("log-unguarded"), false));
+  await runStream("/api/forget?mode=guarded", $("log-guarded"), forgetResult($("log-guarded"), true));
+  $("runForget").disabled = false;
+};
+
+$("learnQuote").textContent = "“Email my team that I'll miss Tuesday's standup because I have a therapy appointment at the clinic.”";
+
+function learnResult(log) {
+  return (d) => {
+    const el = document.createElement("div");
+    el.className = "result " + (d.repeated_mistake ? "bad" : "good");
+    el.innerHTML = d.repeated_mistake ? "Repeated the old mistake: health details sent to the whole team" : "Avoided the old mistake";
+    const mail = d.emails[0];
+    if (mail) el.innerHTML += `<div class="email">${esc(mail.subject)}\n\n${esc(mail.body)}</div>`;
+    log.parentElement.appendChild(el);
+  };
+}
+
+$("runLearn").onclick = async () => {
+  $("runLearn").disabled = true;
+  document.querySelectorAll("#log-plain ~ .result, #log-composted ~ .result").forEach((r) => r.remove());
+  $("log-composted").innerHTML = '<div class="ev">queued…</div>';
+  await runStream("/api/learn?variant=plain", $("log-plain"), learnResult($("log-plain")));
+  await runStream("/api/learn?variant=composted", $("log-composted"), learnResult($("log-composted")));
+  $("runLearn").disabled = false;
+};
+</script>
+</body>
+</html>
