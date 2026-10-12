@@ -39,8 +39,27 @@ incomplete). Base the plan only on what the user asked. Call submit_plan once. D
 C = {"allow": "\033[32m", "block": "\033[31m", "hold": "\033[33m", "dim": "\033[2m", "bold": "\033[1m", "end": "\033[0m"}
 
 
-def say(kind: str, text: str):
-    print(f"{C.get(kind, '')}{text}{C['end']}", flush=True)
+def print_event(e: dict):
+    """Default event sink: coloured terminal output."""
+    if e["type"] == "result":
+        return
+    kind, text = {
+        "user": ("bold", lambda: f"\nUSER ({e['user']}): {e['text']}"),
+        "mode": ("dim", lambda: f"mode: {e['mode']} · model: {e['model']}"),
+        "plan": ("bold", lambda: "\nPLAN signed by ArmorIQ\n" + "\n".join(
+            f"  {i}. {s['tool']}({json.dumps(s['args'])})" for i, s in enumerate(e["steps"], 1))
+            + f"\n  plan_hash={e['plan_hash'][:16]}…  token={e['token_id']}"),
+        "call": ("dim", lambda: f"→ {e['tool']}({json.dumps(e['args'])})"),
+        "decision": (e.get("action"), lambda: {
+            "allow": f"✅ ALLOWED {e['tool']}({json.dumps(e['args'])})  policy: {e.get('policy')}",
+            "hold": f"⏸ HELD   {e['tool']}({json.dumps(e['args'])})\n         reason: {e.get('reason')}  policy: {e.get('policy')}",
+        }.get(e.get("action"), f"⛔ {e.get('action', 'block').upper()} {e['tool']}({json.dumps(e['args'])})"
+               f"\n         reason: {e.get('reason')}  policy: {e.get('policy')}")),
+        "waiting": ("hold", lambda: "         waiting for approval in the ArmorIQ console (Approvals)…"),
+        "approved": ("allow", lambda: "         ✓ approved by a human"),
+        "agent": ("bold", lambda: f"\nAGENT: {e['text']}"),
+    }.get(e["type"], ("dim", lambda: json.dumps(e)))
+    print(f"{C.get(kind, '')}{text()}{C['end']}", flush=True)
 
 
 async def mcp_call(mcp: ClientSession, tool: str, args: dict) -> dict:
@@ -52,9 +71,16 @@ async def mcp_call(mcp: ClientSession, tool: str, args: dict) -> dict:
         return {"text": text}
 
 
-async def run(user: str, request: str, guarded: bool):
+async def run(user: str, request: str, guarded: bool, emit=print_event) -> dict:
+    """Run one request end to end. Returns a summary (plan, decisions, outputs) for receipts/UI."""
     system = SYSTEM.format(user=user)
     guard = None
+    summary = {"user": user, "request": request, "guarded": guarded, "plan": None, "events": [], "final": None}
+
+    def record(event: dict):
+        summary["events"].append(event)
+        emit(event)
+
     async with streamablehttp_client(MCP_URL) as (read, write, _), ClientSession(read, write) as mcp:
         await mcp.initialize()
         listed = await mcp.list_tools()
@@ -65,8 +91,8 @@ async def run(user: str, request: str, guarded: bool):
         ]
 
         llm = make_llm(system, tools)
-        say("bold", f"\nUSER ({user}): {request}")
-        say("dim", f"mode: {'ArmorIQ GUARDED' if guarded else 'UNGUARDED (no ArmorIQ)'} · model: {llm.name}")
+        record({"type": "user", "user": user, "text": request})
+        record({"type": "mode", "mode": "ArmorIQ GUARDED" if guarded else "UNGUARDED (no ArmorIQ)", "model": llm.name})
 
         if guarded:
             from agent.guard import ArmorGuard
@@ -80,54 +106,54 @@ async def run(user: str, request: str, guarded: bool):
             ]
             steps = [s for s in steps if s["tool"] in names]
             signed = guard.sign_plan(request, steps)
-            say("bold", "\nPLAN signed by ArmorIQ")
-            for i, s in enumerate(steps, 1):
-                say("dim", f"  {i}. {s['tool']}({json.dumps(s.get('args', {}))})")
-            say("dim", f"  plan_hash={signed['plan_hash'][:16]}…  token={signed['token_id']}")
+            summary["plan"] = {"steps": steps, **signed}
+            record({"type": "plan", "steps": steps, **signed})
 
         llm.start(request)
         try:
             for _ in range(12):
                 kind, payload = llm.turn()
                 if kind == "text":
-                    say("bold", f"\nAGENT: {payload}")
-                    return
+                    summary["final"] = payload
+                    record({"type": "agent", "text": payload})
+                    return summary
                 results = []
                 for call_id, tool, args in payload:
-                    results.append((call_id, tool, await execute(mcp, guard, tool, args)))
+                    results.append((call_id, tool, await execute(mcp, guard, tool, args, record)))
                 llm.add_results(results)
         finally:
             if guard:
                 guard.close()
+    return summary
 
 
-async def execute(mcp: ClientSession, guard, tool: str, args: dict) -> dict:
-    label = f"{tool}({json.dumps(args)})"
+async def execute(mcp: ClientSession, guard, tool: str, args: dict, record) -> dict:
     if guard is None:
-        say("dim", f"→ {label}")
-        return await mcp_call(mcp, tool, args)
+        output = await mcp_call(mcp, tool, args)
+        record({"type": "call", "tool": tool, "args": args, "output": output})
+        return output
 
     decision = guard.check(tool, args)
+    event = {"type": "decision", "tool": tool, "args": args, "action": decision.action,
+             "reason": decision.reason, "policy": decision.policy}
+    record(event)
     if decision.action == "hold":
-        say("hold", f"⏸ HELD   {label}\n         reason: {decision.reason}  policy: {decision.policy}")
         if not decision.delegation_id:
             return {"armoriq_enforcement": "hold", "error": "approval request could not be created"}
-        say("hold", "         waiting for approval in the ArmorIQ console (Approvals)…")
+        record({"type": "waiting", "tool": tool, "delegation_id": decision.delegation_id})
         status = await guard.wait_for_approval(decision.delegation_id)
         if status != "approved":
-            say("block", f"⛔ {status.upper()} {label}")
+            record({"type": "decision", "tool": tool, "args": args, "action": status, "reason": f"approval {status}"})
             return {"armoriq_enforcement": status, "error": f"approval {status}; action not performed"}
-        say("allow", "         ✓ approved by a human")
+        record({"type": "approved", "tool": tool, "delegation_id": decision.delegation_id})
     elif decision.action != "allow":
-        say("block", f"⛔ BLOCKED {label}\n         reason: {decision.reason}  policy: {decision.policy}")
         return {"armoriq_enforcement": "blocked", "reason": decision.reason}
-    else:
-        say("allow", f"✅ ALLOWED {label}  policy: {decision.policy}")
 
     started = time.perf_counter()
     try:
         output = await mcp_call(mcp, tool, args)
         guard.report(tool, args, output, started)
+        record({"type": "result", "tool": tool, "output": output})
         return output
     except Exception as exc:
         guard.report(tool, args, None, started, ok=False, error=str(exc))

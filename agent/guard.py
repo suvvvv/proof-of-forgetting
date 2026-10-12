@@ -30,7 +30,9 @@ class ArmorGuard:
     def sign_plan(self, goal: str, steps: list[dict]) -> dict:
         """Mint a signed intent token for the plan. Anything outside it will be refused."""
         self.token = self.session.start_plan([{"name": s["tool"], "args": s.get("args", {})} for s in steps], goal=goal)
-        return {"plan_hash": self.token.plan_hash, "token_id": self.token.token_id, "steps": len(steps)}
+        return {"plan_hash": self.token.plan_hash, "token_id": self.token.token_id, "plan_id": self.token.plan_id,
+                "merkle_root": (self.token.raw_token or {}).get("merkle_root"),
+                "signed_token": (self.token.raw_token or {}).get("token") or {}}
 
     def check(self, tool: str, args: dict) -> Decision:
         result = self.session.check(tool, args, user_email=self.user_email)
