@@ -87,6 +87,9 @@ armoriq validate --config armoriq.yaml && armoriq register --config armoriq.yaml
 python -m demo.app              # demo UI → http://localhost:8800
 ```
 
+After the one-time setup above, `./start_demo.sh` starts the MCP server, the tunnel and the demo UI in one go
+(`./start_demo.sh stop` stops them).
+
 In the ArmorIQ console, create the policy described in [How ArmorIQ is used](#how-armoriq-is-used) and target the
 `memory-mcp` server. Each forget run then pauses at `delete_memory` until someone approves the plan under
 **Intent → Held Actions → Needs you** (`APPROVAL_TIMEOUT` seconds, default 600. A timeout means the deletion is refused).
