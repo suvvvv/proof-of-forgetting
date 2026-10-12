@@ -1,0 +1,26 @@
+version: v1
+identity:
+  api_key: $ARMORIQ_API_KEY
+  user_id: privacy-officer
+  agent_id: forgetful-agent
+environment: sandbox
+proxy:
+  url: https://proxy.armoriq.ai
+mcp_servers:
+  - id: memory-mcp
+    url: https://9bb3-35-200-170-123.ngrok-free.app/mcp
+    description: Agent memory with provable forgetting (sandbox data only)
+    auth: none
+policy:
+  allow:
+    - memory-mcp.recall_memory
+    - memory-mcp.compost_memory
+    - memory-mcp.delete_memory
+    - memory-mcp.get_lessons
+  deny:
+    - memory-mcp.export_memory
+    - memory-mcp.store_memory
+    - memory-mcp.verify_forgotten
+intent:
+  ttl_seconds: 300
+  require_csrg: true

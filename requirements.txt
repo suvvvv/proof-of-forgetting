@@ -1,0 +1,4 @@
+armoriq-sdk==0.6.10
+mcp[cli]>=1.20,<2
+anthropic>=1.13
+python-dotenv>=1.0

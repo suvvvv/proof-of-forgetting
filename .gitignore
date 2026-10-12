@@ -1,0 +1,7 @@
+.env
+api-key.md
+__pycache__/
+.venv/
+*.db
+data/
+.DS_Store
