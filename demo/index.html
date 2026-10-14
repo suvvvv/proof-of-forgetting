@@ -151,8 +151,22 @@ function render(log, e, onDone) {
       add(log, cls, `${label} ${call(e.tool, e.args)}${e.action !== "allow" ? `<span class="why">${esc(e.reason)}</span>` : ""}`);
       break;
     }
-    case "waiting": add(log, "hold", `<span class="spinner"></span> Held for a human privacy officer, who approves it in the ArmorIQ console (Held Actions).
-      <span class="why">No approval in time → the deletion is refused (fail closed). Raw data stays untouched and nothing leaks.</span>`); break;
+    case "waiting": {
+      const el = add(log, "hold", `<span class="spinner"></span> Held for a human privacy officer.
+        <span class="why">No approval in time → the deletion is refused (fail closed). Raw data stays untouched and nothing leaks.</span>`);
+      if (e.can_decide) {
+        el.insertAdjacentHTML("beforeend", `<div class="row" style="margin:8px 0 0">
+          <button data-act="approve">Approve as privacy officer</button>
+          <button data-act="reject" style="background:transparent;color:var(--block);border:1px solid var(--block)">Reject</button></div>
+          <span class="why">This is a real ArmorIQ approval (POST /delegation/approve), recorded in the ArmorIQ console. You can also approve there under Held Actions.</span>`);
+        el.querySelectorAll("button").forEach((b) => b.onclick = async () => {
+          el.querySelectorAll("button").forEach((x) => x.disabled = true);
+          const r = await fetch(`/api/decide?action=${b.dataset.act}`, { method: "POST" }).then((x) => x.json()).catch(() => ({ ok: false }));
+          if (!r.ok) add(log, "block", `Could not record the decision: ${esc(r.message || "error")}`);
+        });
+      }
+      break;
+    }
     case "approved": add(log, "allow", "✓ Approved by a human"); break;
     case "agent": add(log, "agent", esc(e.text)); break;
     case "error": add(log, "block", `Error: ${esc(e.message)}`); break;

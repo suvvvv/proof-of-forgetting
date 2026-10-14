@@ -22,6 +22,8 @@ from starlette.routing import Mount, Route
 
 load_dotenv(".env")
 
+from armoriq_sdk import ArmorIQClient  # noqa: E402
+
 from agent import certificate  # noqa: E402
 from agent import run as agent  # noqa: E402
 from memory_mcp import store  # noqa: E402
@@ -38,6 +40,13 @@ if SERVE_MCP:
 # Runs share one memory store, so they execute one at a time; a busy demo answers immediately
 # instead of queueing. A short per-visitor cooldown protects the free-tier LLM quota.
 RUN_LOCK = threading.Lock()
+# The one ArmorIQ delegation the current run is waiting on. The page's approve/reject buttons can
+# decide this request and nothing else.
+PENDING = {"delegation_id": None}
+# Approver identity for the in-page buttons: a member of the ArmorIQ org with approval rights.
+# Unset → no buttons; approvals then happen only in the ArmorIQ console.
+OFFICER_EMAIL = os.getenv("PRIVACY_OFFICER_EMAIL")
+OFFICER_ROLE = os.getenv("PRIVACY_OFFICER_ROLE", "org_admin")
 COOLDOWN_SECONDS = int(os.getenv("DEMO_COOLDOWN", "20"))
 _last_run: dict[str, float] = {}
 
@@ -48,9 +57,26 @@ def seed():
         store.add_memory(ALICE, memory)
 
 
+def track_pending(emit):
+    """Wrap an emitter so the waiting delegation is remembered for the approve/reject buttons."""
+
+    def wrapped(event):
+        if event.get("type") == "waiting":
+            PENDING["delegation_id"] = event.get("delegation_id")
+            event = {**event, "can_decide": bool(OFFICER_EMAIL)}
+        elif event.get("type") in ("approved", "decision") and event.get("tool") == "delete_memory":
+            PENDING["delegation_id"] = None
+        emit(event)
+
+    return wrapped
+
+
 def forget_scenario(guarded: bool, emit) -> dict:
     seed()
-    summary = asyncio.run(agent.run(ALICE, FORGET, guarded=guarded, emit=emit))
+    try:
+        summary = asyncio.run(agent.run(ALICE, FORGET, guarded=guarded, emit=track_pending(emit)))
+    finally:
+        PENDING["delegation_id"] = None
     outbox = store.get_outbox()
     residue = {"found_in": {s: store.find_anywhere(s) for s in SECRETS}}
     residue["forgotten"] = all(not hits for hits in residue["found_in"].values())
@@ -127,6 +153,29 @@ async def learn_endpoint(request):
     return stream(lambda emit: learn_scenario(composted, emit), request)
 
 
+async def decide_endpoint(request):
+    """Approve or reject the delegation the current run is waiting on, as the privacy officer."""
+    action = request.query_params.get("action")
+    delegation_id = PENDING["delegation_id"]
+    if action not in ("approve", "reject") or not OFFICER_EMAIL:
+        return JSONResponse({"ok": False, "message": "not available"}, status_code=400)
+    if not delegation_id:
+        return JSONResponse({"ok": False, "message": "nothing is waiting for approval"}, status_code=409)
+    client = ArmorIQClient()
+    body = {"delegationId": delegation_id, "approverEmail": OFFICER_EMAIL, "approverRole": OFFICER_ROLE}
+    if action == "reject":
+        body["reason"] = "Rejected by the privacy officer in the live demo"
+    response = await asyncio.to_thread(
+        client.http_client.post,
+        f"{client.backend_endpoint}/delegation/{action}",
+        json=body,
+        headers={"X-API-Key": client.api_key, "Content-Type": "application/json", "X-User-Email": OFFICER_EMAIL},
+        timeout=15,
+    )
+    ok = response.status_code < 300
+    return JSONResponse({"ok": ok, "message": None if ok else response.text[:200]}, status_code=200 if ok else 502)
+
+
 async def memories_endpoint(request):
     return JSONResponse({"user": ALICE, "memories": MEMORIES, "poisoned_index": len(MEMORIES) - 1})
 
@@ -140,6 +189,7 @@ routes = [
     Route("/api/memories", memories_endpoint),
     Route("/api/forget", forget_endpoint),
     Route("/api/learn", learn_endpoint),
+    Route("/api/decide", decide_endpoint, methods=["POST"]),
 ]
 lifespan = None
 if SERVE_MCP:
