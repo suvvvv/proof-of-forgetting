@@ -40,7 +40,12 @@ class GeminiLLM:
         from google.genai import types
 
         self.types = types
-        self.client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+        # No hidden SDK retries: an overloaded model would otherwise stall the run for minutes.
+        # _generate() retries briefly and then falls back to a lighter model.
+        self.client = genai.Client(
+            api_key=os.environ["GEMINI_API_KEY"],
+            http_options=types.HttpOptions(timeout=45_000, retry_options=types.HttpRetryOptions(attempts=1)),
+        )
         self.model = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
         # Free-tier models return 503/429 under load; fall back to a lighter model rather than fail the run.
         self.fallback = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-flash-lite-latest")
@@ -64,13 +69,16 @@ class GeminiLLM:
     def _generate(self, contents, config):
         from google.genai import errors
 
-        for attempt, model in enumerate([self.model] * 3 + [self.fallback] * 2):
+        attempts = [self.model, self.model, self.fallback, self.fallback]
+        for attempt, model in enumerate(attempts):
             try:
-                return self.client.models.generate_content(model=model, contents=contents, config=config)
+                response = self.client.models.generate_content(model=model, contents=contents, config=config)
+                self.name = model
+                return response
             except (errors.ServerError, errors.ClientError) as exc:
-                if getattr(exc, "code", None) not in (429, 500, 503) or attempt == 4:
+                if getattr(exc, "code", None) not in (429, 500, 502, 503, 504) or attempt == len(attempts) - 1:
                     raise
-                time.sleep(2 * (attempt + 1))
+                time.sleep(1.5)
 
     def plan(self, request: str, planner_prompt: str) -> list[dict]:
         t = self.types

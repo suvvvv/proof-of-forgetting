@@ -81,7 +81,9 @@ async def run(user: str, request: str, guarded: bool, emit=print_event) -> dict:
         summary["events"].append(event)
         emit(event)
 
-    async with streamablehttp_client(MCP_URL) as (read, write, _), ClientSession(read, write) as mcp:
+    token = os.getenv("MCP_AUTH_TOKEN")
+    headers = {"Authorization": f"Bearer {token}"} if token else None
+    async with streamablehttp_client(MCP_URL, headers=headers) as (read, write, _), ClientSession(read, write) as mcp:
         await mcp.initialize()
         listed = await mcp.list_tools()
         tools = [

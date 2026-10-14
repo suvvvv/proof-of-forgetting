@@ -151,7 +151,8 @@ function render(log, e, onDone) {
       add(log, cls, `${label} ${call(e.tool, e.args)}${e.action !== "allow" ? `<span class="why">${esc(e.reason)}</span>` : ""}`);
       break;
     }
-    case "waiting": add(log, "hold", "Waiting for a human to approve in the ArmorIQ console…"); break;
+    case "waiting": add(log, "hold", `<span class="spinner"></span> Held for a human privacy officer, who approves it in the ArmorIQ console (Held Actions).
+      <span class="why">No approval in time → the deletion is refused (fail closed). Raw data stays untouched and nothing leaks.</span>`); break;
     case "approved": add(log, "allow", "✓ Approved by a human"); break;
     case "agent": add(log, "agent", esc(e.text)); break;
     case "error": add(log, "block", `Error: ${esc(e.message)}`); break;

@@ -1,6 +1,9 @@
 """memory-mcp: an agent memory store that can forget a user while keeping privacy-safe lessons.
 
 Run:  python -m memory_mcp.server        (streamable HTTP on :8765/mcp)
+
+If MCP_AUTH_TOKEN is set, every request must carry "Authorization: Bearer <token>". A public MCP
+without it would let anyone call export_memory directly and bypass ArmorIQ entirely.
 """
 
 import json
@@ -91,5 +94,33 @@ def verify_forgotten(secrets: list[str]) -> dict:
     return {"forgotten": all(not hits for hits in report.values()), "found_in": report}
 
 
+class BearerAuth:
+    """Pure-ASGI guard: reject HTTP requests without the shared bearer token."""
+
+    def __init__(self, app, token: str):
+        self.app = app
+        self.expected = f"Bearer {token}".encode()
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and dict(scope["headers"]).get(b"authorization") != self.expected:
+            await send({"type": "http.response.start", "status": 401,
+                        "headers": [(b"content-type", b"application/json")]})
+            await send({"type": "http.response.body", "body": b'{"error":"unauthorized"}'})
+            return
+        await self.app(scope, receive, send)
+
+
+def http_app():
+    """The MCP endpoint as an ASGI app (routes /mcp). Its session manager must be running:
+    standalone, the app's own lifespan does it; when mounted elsewhere, run mcp.session_manager.run()."""
+    app = mcp.streamable_http_app()
+    token = os.getenv("MCP_AUTH_TOKEN")
+    return BearerAuth(app, token) if token else app
+
+
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http")
+    import uvicorn
+
+    app = mcp.streamable_http_app()
+    token = os.getenv("MCP_AUTH_TOKEN")
+    uvicorn.run(BearerAuth(app, token) if token else app, host="0.0.0.0", port=int(os.getenv("MCP_PORT", "8765")))
