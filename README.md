@@ -3,6 +3,9 @@
 **An AI agent that can forget you provably, without being hijacked on the way out, and that still learns from what it forgot.**
 Every tool call is governed by [ArmorIQ](https://armoriq.ai). Built for ArmorIQ Flow State 2026.
 
+**Live demo:** https://proof-of-forgetting.onrender.com (free hosting. If it has been idle, the first load can take
+about a minute.)
+
 ## The problem
 
 When a user says *"forget me"*, the agent has to read **all** of their data to delete it. That makes it the most
@@ -61,7 +64,7 @@ flowchart LR
 | Per-user scope (`for_user`) | each run is scoped to the requesting user's email |
 | Runtime enforcement (`check`, SDK mode) | [agent/run.py](agent/run.py) `execute`: allow / block / hold on every tool call |
 | Org policy | `forget-governance` (console Policy Studio, priority 10): allow recall/compost/get_lessons/send_email, **hold** delete_memory, block export/store/verify, default block. Bootstrap allow/deny list in [armoriq.yaml](armoriq.yaml) |
-| Human approval (`await_approval`) | `delete_memory` is **held** by the `forget-governance` policy. A human approves the plan in **Intent → Held Actions → Needs you**, then the agent continues |
+| Human approval (`await_approval`) | `delete_memory` is **held** by the `forget-governance` policy. A privacy officer approves it in the ArmorIQ console (**Intent → Held Actions**) or with the demo page's *Approve as privacy officer* button, which calls ArmorIQ's `POST /delegation/approve` for that one pending request. Then the agent continues. No decision in time means the deletion is refused |
 | Audit trail (`report`) + observability | every executed call is reported, and decisions appear in the ArmorIQ dashboard |
 | Signed token as evidence | [agent/certificate.py](agent/certificate.py) |
 
@@ -123,6 +126,13 @@ Set `LLM_PROVIDER=claude` and `ANTHROPIC_API_KEY` to use Claude instead of Gemin
   SuperLocalMemory). Lessons-learned memory exists (regret-mcp). What we haven't found elsewhere is the combination:
   **governed forgetting** where the deletion plan is signed and enforced so it can't be hijacked, plus lessons that
   survive deletion and a certificate tied to the governance layer.
+
+## Hosting
+
+The live demo runs the [Dockerfile](Dockerfile) on Render's free plan: demo UI and `memory-mcp` in one process
+(`SERVE_MCP=1`). Secrets are Render environment variables. `/mcp` requires `MCP_AUTH_TOKEN`, so nobody can call the
+memory tools directly and skip ArmorIQ. Demo runs go one at a time with a per-visitor cooldown, and
+[a scheduled workflow](.github/workflows/keep-awake.yml) keeps the free instance awake.
 
 ## Layout
 
