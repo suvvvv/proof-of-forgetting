@@ -1,3 +1,5 @@
+<p align="center"><img src="demo/static/logo-full.png" alt="Proof of Forgetting: Forget safely. Prove it." width="420"></p>
+
 # Proof of Forgetting
 
 **An AI agent that can forget you provably, without being hijacked on the way out, and that still learns from what it forgot.**

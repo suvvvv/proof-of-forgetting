@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Proof of Forgetting</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<meta name="description" content="Forget safely. Prove it. An AI agent that forgets users provably, governed by ArmorIQ.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -14,7 +16,7 @@
     --allow: #34d399; --allow-bg: rgba(52, 211, 153, .10); --allow-line: rgba(52, 211, 153, .35);
     --block: #fb7185; --block-bg: rgba(251, 113, 133, .10); --block-line: rgba(251, 113, 133, .40);
     --hold: #fbbf24; --hold-bg: rgba(251, 191, 36, .10); --hold-line: rgba(251, 191, 36, .40);
-    --brand: #8b9dff; --brand2: #b18cff; --brand-bg: rgba(139, 157, 255, .12);
+    --brand: #4da3ff; --brand2: #1f6bff; --brand-bg: rgba(77, 163, 255, .12);
     --shadow: 0 10px 40px rgba(0, 0, 0, .35);
   }
   @media (prefers-color-scheme: light) {
@@ -24,7 +26,7 @@
       --allow: #059669; --allow-bg: #e8f8f1; --allow-line: #a7e3cb;
       --block: #e11d48; --block-bg: #fdecef; --block-line: #f7b9c6;
       --hold: #b45309; --hold-bg: #fff4e0; --hold-line: #f3cf8f;
-      --brand: #4f5bd5; --brand2: #7c4dff; --brand-bg: #eef0ff; --shadow: 0 8px 30px rgba(17, 24, 39, .08);
+      --brand: #1a73e8; --brand2: #0b4fd6; --brand-bg: #e8f1ff; --shadow: 0 8px 30px rgba(17, 24, 39, .08);
     }
   }
   * { box-sizing: border-box; }
@@ -32,8 +34,8 @@
   body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 Inter, -apple-system, "Segoe UI", sans-serif;
          -webkit-font-smoothing: antialiased; }
   body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: -1;
-    background: radial-gradient(900px 500px at 15% -10%, rgba(139,157,255,.16), transparent 60%),
-                radial-gradient(700px 400px at 95% 0%, rgba(177,140,255,.12), transparent 60%); }
+    background: radial-gradient(900px 500px at 15% -10%, rgba(77,163,255,.16), transparent 60%),
+                radial-gradient(700px 400px at 95% 0%, rgba(31,107,255,.12), transparent 60%); }
   main { max-width: 1200px; margin: 0 auto; padding: 0 16px 80px; }
   .mono, code { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
   button { font: inherit; cursor: pointer; }
@@ -41,8 +43,11 @@
   /* ── Header ── */
   nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; gap: 12px; flex-wrap: wrap; }
   .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.01em; }
-  .logo-mark { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
-               background: linear-gradient(135deg, var(--brand), var(--brand2)); color: #fff; font-size: 16px; }
+  .logo img { width: 34px; height: 34px; }
+  .logo .accent { color: var(--brand); }
+  .hero { display: grid; grid-template-columns: 1fr 260px; gap: 24px; align-items: center; }
+  .hero-art { width: 260px; height: 260px; filter: drop-shadow(0 20px 40px rgba(31, 107, 255, .25)); }
+  .hero .pillars, .hero .flow { grid-column: 1 / -1; }
   .gov { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 99px; font-size: 13px;
          border: 1px solid var(--allow-line); background: var(--allow-bg); color: var(--allow); font-weight: 600; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
@@ -87,7 +92,7 @@
   /* Run bar */
   .runbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 16px; margin-bottom: 14px; }
   .cta { border: 0; border-radius: 11px; padding: 12px 20px; font-weight: 700; color: #fff;
-         background: linear-gradient(135deg, var(--brand), var(--brand2)); box-shadow: 0 6px 24px rgba(139, 157, 255, .35); transition: transform .12s, opacity .12s; }
+         background: linear-gradient(135deg, var(--brand), var(--brand2)); box-shadow: 0 6px 24px rgba(31, 107, 255, .35); transition: transform .12s, opacity .12s; }
   .cta:hover { transform: translateY(-1px); }
   .cta:disabled { opacity: .55; cursor: wait; transform: none; }
   .quote { font-size: 15px; color: var(--ink); background: var(--panel2); border: 1px solid var(--line); padding: 8px 12px; border-radius: 10px; }
@@ -186,14 +191,15 @@
   @keyframes rot { to { transform: rotate(360deg); } }
 
   @media (max-width: 860px) {
-    .split, .mems, .pillars, .cert-grid { grid-template-columns: 1fr; }
+    .split, .mems, .pillars, .cert-grid, .hero { grid-template-columns: 1fr; }
+    .hero-art { display: none; }
   }
 </style>
 </head>
 <body>
 <main>
   <nav>
-    <div class="logo"><div class="logo-mark">◐</div> Proof of Forgetting</div>
+    <div class="logo"><img src="/static/logo-mark.png" alt=""> <span>Proof of <span class="accent">Forgetting</span></span></div>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
       <a href="https://github.com/suvvvv/proof-of-forgetting" target="_blank" rel="noopener">GitHub ↗</a>
       <span class="gov"><span class="dot"></span> Governed by ArmorIQ</span>
@@ -201,10 +207,13 @@
   </nav>
 
   <header class="hero">
-    <div class="eyebrow">AI agent memory · Right to be forgotten</div>
-    <h1>Agents that forget you <span class="grad">provably</span>,<br>and still learn.</h1>
-    <p class="lede">When you tell an AI agent <em>“forget me”</em>, it has to read <strong>all</strong> of your data to delete it.
-      That's the riskiest moment in your data's life, and exactly when an attacker strikes.</p>
+    <div>
+      <div class="eyebrow">Forget safely. Prove it.</div>
+      <h1>Agents that forget you <span class="grad">provably</span>,<br>and still learn.</h1>
+      <p class="lede">When you tell an AI agent <em>“forget me”</em>, it has to read <strong>all</strong> of your data to delete it.
+        That's the riskiest moment in your data's life, and exactly when an attacker strikes.</p>
+    </div>
+    <img class="hero-art" src="/static/logo-mark.png" alt="Proof of Forgetting logo">
     <div class="flow">
       <span class="step">“Forget me”</span><span class="arr">→</span>
       <span class="step">Agent plans</span><span class="arr">→</span>

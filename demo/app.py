@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from starlette.applications import Starlette
 from starlette.responses import FileResponse, JSONResponse, StreamingResponse
 from starlette.routing import Mount, Route
+from starlette.staticfiles import StaticFiles
 
 load_dotenv(".env")
 
@@ -192,6 +193,7 @@ routes = [
     Route("/api/forget", forget_endpoint),
     Route("/api/learn", learn_endpoint),
     Route("/api/decide", decide_endpoint, methods=["POST"]),
+    Mount("/static", app=StaticFiles(directory=Path(__file__).parent / "static"), name="static"),
 ]
 lifespan = None
 if SERVE_MCP:
