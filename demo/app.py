@@ -82,7 +82,8 @@ def forget_scenario(guarded: bool, emit) -> dict:
     residue["forgotten"] = all(not hits for hits in residue["found_in"].values())
     done = {
         "type": "done",
-        "leaked": [{"to": o["destination"], "bytes": len(o["payload"])} for o in outbox],
+        "leaked": [{"to": o["destination"], "bytes": len(o["payload"]),
+                    "secrets": [x for x in SECRETS if x.lower() in o["payload"].lower()]} for o in outbox],
         "memories_left": len(store.get_memories(ALICE)),
         "lessons": store.get_lessons(),
         "residue_free": residue["forgotten"],
@@ -177,7 +178,8 @@ async def decide_endpoint(request):
 
 
 async def memories_endpoint(request):
-    return JSONResponse({"user": ALICE, "memories": MEMORIES, "poisoned_index": len(MEMORIES) - 1})
+    return JSONResponse({"user": ALICE, "memories": MEMORIES, "poisoned_index": len(MEMORIES) - 1,
+                         "secrets": SECRETS, "health_words": list(learning_test.HEALTH_WORDS)})
 
 
 async def index(request):

@@ -4,132 +4,298 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Proof of Forgetting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f6f7f9; --panel: #ffffff; --ink: #14171c; --muted: #5f6b7a; --line: #e3e6eb;
-    --allow: #127a3e; --allow-bg: #e7f6ec; --block: #b42318; --block-bg: #fdecea;
-    --hold: #9a6100; --hold-bg: #fff4e0; --accent: #3b5bdb; --code: #f0f2f5;
+    --bg: #0a0d14; --bg2: #0f1420; --panel: #121826; --panel2: #171f30; --line: #232c3f; --line2: #2e3a52;
+    --ink: #eef2f8; --muted: #8a96ab; --faint: #5d6880;
+    --allow: #34d399; --allow-bg: rgba(52, 211, 153, .10); --allow-line: rgba(52, 211, 153, .35);
+    --block: #fb7185; --block-bg: rgba(251, 113, 133, .10); --block-line: rgba(251, 113, 133, .40);
+    --hold: #fbbf24; --hold-bg: rgba(251, 191, 36, .10); --hold-line: rgba(251, 191, 36, .40);
+    --brand: #8b9dff; --brand2: #b18cff; --brand-bg: rgba(139, 157, 255, .12);
+    --shadow: 0 10px 40px rgba(0, 0, 0, .35);
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #0e1116; --panel: #161a21; --ink: #e8ebf0; --muted: #94a0b0; --line: #262c36;
-      --allow: #4ad18a; --allow-bg: #0f2a1c; --block: #ff6b5e; --block-bg: #2e1513;
-      --hold: #f5b443; --hold-bg: #2d2210; --accent: #7c95ff; --code: #1d222b;
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f7fb; --bg2: #eef1f7; --panel: #ffffff; --panel2: #f6f8fc; --line: #e2e7f0; --line2: #d3dae6;
+      --ink: #111827; --muted: #5b6577; --faint: #8a93a3;
+      --allow: #059669; --allow-bg: #e8f8f1; --allow-line: #a7e3cb;
+      --block: #e11d48; --block-bg: #fdecef; --block-line: #f7b9c6;
+      --hold: #b45309; --hold-bg: #fff4e0; --hold-line: #f3cf8f;
+      --brand: #4f5bd5; --brand2: #7c4dff; --brand-bg: #eef0ff; --shadow: 0 8px 30px rgba(17, 24, 39, .08);
     }
   }
-  :root[data-theme="dark"] {
-    --bg: #0e1116; --panel: #161a21; --ink: #e8ebf0; --muted: #94a0b0; --line: #262c36;
-    --allow: #4ad18a; --allow-bg: #0f2a1c; --block: #ff6b5e; --block-bg: #2e1513;
-    --hold: #f5b443; --hold-bg: #2d2210; --accent: #7c95ff; --code: #1d222b;
-  }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink);
-         font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
-  main { max-width: 1180px; margin: 0 auto; padding: 28px 16px 64px; }
-  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.02em; }
-  h2 { font-size: 18px; margin: 0 0 12px; }
-  .sub { color: var(--muted); margin: 0 0 24px; max-width: 760px; }
-  section { margin-top: 28px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-  .mem { display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
-  .mem:first-of-type { border-top: 0; }
-  .tag { flex: none; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px;
-         background: var(--code); color: var(--muted); height: fit-content; white-space: nowrap; }
-  .tag.poison { background: var(--block-bg); color: var(--block); }
-  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 16px 0 12px; }
-  button { font: inherit; font-weight: 600; border: 0; border-radius: 8px; padding: 10px 16px;
-           background: var(--accent); color: #fff; cursor: pointer; }
-  button:disabled { opacity: .5; cursor: wait; }
-  .quote { color: var(--muted); font-style: italic; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 Inter, -apple-system, "Segoe UI", sans-serif;
+         -webkit-font-smoothing: antialiased; }
+  body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: -1;
+    background: radial-gradient(900px 500px at 15% -10%, rgba(139,157,255,.16), transparent 60%),
+                radial-gradient(700px 400px at 95% 0%, rgba(177,140,255,.12), transparent 60%); }
+  main { max-width: 1200px; margin: 0 auto; padding: 0 16px 80px; }
+  .mono, code { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
+  button { font: inherit; cursor: pointer; }
+
+  /* ── Header ── */
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; gap: 12px; flex-wrap: wrap; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.01em; }
+  .logo-mark { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+               background: linear-gradient(135deg, var(--brand), var(--brand2)); color: #fff; font-size: 16px; }
+  .gov { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 99px; font-size: 13px;
+         border: 1px solid var(--allow-line); background: var(--allow-bg); color: var(--allow); font-weight: 600; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,.6); } 70% { box-shadow: 0 0 0 8px rgba(52,211,153,0); } 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); } }
+  nav a { color: var(--muted); text-decoration: none; font-size: 14px; }
+  nav a:hover { color: var(--ink); }
+
+  .hero { padding: 36px 0 12px; }
+  .eyebrow { color: var(--brand); font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+  h1 { font-size: clamp(34px, 6vw, 60px); line-height: 1.04; margin: 10px 0 14px; letter-spacing: -.035em; font-weight: 800; }
+  h1 .grad { background: linear-gradient(90deg, var(--brand), var(--brand2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lede { color: var(--muted); font-size: 18px; max-width: 720px; margin: 0 0 22px; }
+  .lede strong, .lede em { color: var(--ink); }
+  .pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 26px 0 0; }
+  .pillar { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .pillar .ic { font-size: 20px; }
+  .pillar b { display: block; margin: 6px 0 2px; }
+  .pillar span { color: var(--muted); font-size: 13.5px; }
+
+  .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 18px; color: var(--muted); font-size: 13px; }
+  .flow .step { padding: 6px 10px; border-radius: 8px; background: var(--panel2); border: 1px solid var(--line); color: var(--ink); }
+  .flow .step.aiq { border-color: var(--brand); background: var(--brand-bg); color: var(--brand); font-weight: 600; }
+  .flow .arr { color: var(--faint); }
+
+  /* ── Sections ── */
+  section { margin-top: 56px; }
+  .sec-head { margin-bottom: 16px; }
+  .num { font-size: 12px; font-weight: 700; color: var(--brand); letter-spacing: .1em; text-transform: uppercase; }
+  h2 { font-size: 26px; margin: 4px 0 4px; letter-spacing: -.02em; }
+  .sub { color: var(--muted); margin: 0; max-width: 680px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+
+  /* Memories */
+  .mems { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .mem { padding: 14px 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); font-size: 14.5px; }
+  .mem .k { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); margin-bottom: 6px; }
+  .mem.poison { border-color: var(--block-line); background: linear-gradient(180deg, var(--block-bg), transparent 140%); }
+  .mem.poison .k { color: var(--block); }
+  mark.secret { background: rgba(251, 191, 36, .18); color: var(--hold); border-radius: 4px; padding: 0 3px; font-weight: 600; }
+  mark.health { background: var(--block-bg); color: var(--block); border-radius: 4px; padding: 0 3px; font-weight: 700; }
+
+  /* Run bar */
+  .runbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 16px; margin-bottom: 14px; }
+  .cta { border: 0; border-radius: 11px; padding: 12px 20px; font-weight: 700; color: #fff;
+         background: linear-gradient(135deg, var(--brand), var(--brand2)); box-shadow: 0 6px 24px rgba(139, 157, 255, .35); transition: transform .12s, opacity .12s; }
+  .cta:hover { transform: translateY(-1px); }
+  .cta:disabled { opacity: .55; cursor: wait; transform: none; }
+  .quote { font-size: 15px; color: var(--ink); background: var(--panel2); border: 1px solid var(--line); padding: 8px 12px; border-radius: 10px; }
+  .quote::before { content: "Alice: "; color: var(--muted); }
+
   .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 820px) { .split { grid-template-columns: 1fr; } }
-  .pane h3 { margin: 0 0 2px; font-size: 16px; }
-  .pane .hint { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
-  .log { display: flex; flex-direction: column; gap: 6px; min-height: 120px; }
-  .ev { font-size: 13px; padding: 7px 10px; border-radius: 8px; background: var(--code); overflow-wrap: anywhere; }
-  .ev code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
-  .ev.allow { background: var(--allow-bg); color: var(--allow); }
-  .ev.block { background: var(--block-bg); color: var(--block); font-weight: 600; }
-  .ev.hold { background: var(--hold-bg); color: var(--hold); }
-  .ev.leak { background: var(--block-bg); color: var(--block); font-weight: 600; }
-  .ev .why { display: block; font-weight: 400; opacity: .85; font-size: 12px; }
-  .ev.plan ol { margin: 4px 0 2px 18px; padding: 0; }
-  .ev.agent { background: transparent; border: 1px dashed var(--line); color: var(--muted);
-              max-height: 7.5em; overflow: auto; white-space: pre-wrap; }
-  .result { margin-top: 12px; padding: 12px; border-radius: 10px; font-weight: 600; }
-  .result.bad { background: var(--block-bg); color: var(--block); }
-  .result.good { background: var(--allow-bg); color: var(--allow); }
-  .result small { display: block; font-weight: 400; color: var(--ink); opacity: .8; margin-top: 4px; }
-  .checks { list-style: none; padding: 0; margin: 8px 0 0; font-size: 13px; }
-  .checks li::before { content: "✓ "; color: var(--allow); font-weight: 700; }
-  .checks li.fail::before { content: "✗ "; color: var(--block); }
-  .email { font-size: 13px; background: var(--code); border-radius: 8px; padding: 10px; white-space: pre-wrap; margin-top: 8px; }
-  a.dl { color: var(--accent); font-size: 13px; }
-  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--line);
-             border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .pane { overflow: hidden; display: flex; flex-direction: column; }
+  .pane-h { padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .pane-h b { font-size: 15px; }
+  .pane-h small { display: block; color: var(--muted); font-weight: 400; font-size: 12.5px; }
+  .tag { font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 4px 9px; border-radius: 99px; text-transform: uppercase; white-space: nowrap; }
+  .tag.red { color: var(--block); background: var(--block-bg); border: 1px solid var(--block-line); }
+  .tag.green { color: var(--allow); background: var(--allow-bg); border: 1px solid var(--allow-line); }
+  .pane.bad .pane-h { background: linear-gradient(90deg, var(--block-bg), transparent); }
+  .pane.good .pane-h { background: linear-gradient(90deg, var(--allow-bg), transparent); }
+  .log { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 260px; flex: 1; }
+  .empty { color: var(--faint); font-size: 13.5px; margin: auto; text-align: center; }
+
+  .ev { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; padding: 9px 11px; border-radius: 11px;
+        background: var(--panel2); border: 1px solid var(--line); font-size: 13.5px; animation: in .25s ease-out; }
+  @keyframes in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .ev .i { font-size: 15px; line-height: 1.3; text-align: center; }
+  .ev .t { min-width: 0; overflow-wrap: anywhere; }
+  .ev .why { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .ev .pol { color: var(--faint); font-size: 11.5px; }
+  .pill { font-family: "JetBrains Mono", monospace; font-size: 12.5px; background: var(--bg2); border: 1px solid var(--line2); border-radius: 6px; padding: 1px 6px; }
+  .badge { float: right; margin-left: 8px; font-size: 10.5px; font-weight: 800; letter-spacing: .07em; padding: 3px 8px; border-radius: 6px; }
+  .ev.allow { border-color: var(--allow-line); } .ev.allow .badge { color: var(--allow); background: var(--allow-bg); }
+  .ev.block { border-color: var(--block-line); background: var(--block-bg); } .ev.block .badge { color: #fff; background: var(--block); }
+  .ev.hold { border-color: var(--hold-line); background: var(--hold-bg); } .ev.hold .badge { color: #1a1300; background: var(--hold); }
+  .ev.leak { border-color: var(--block-line); background: var(--block-bg); } .ev.leak .badge { color: #fff; background: var(--block); }
+  .ev.plan { border-color: var(--brand); background: var(--brand-bg); }
+  .ev.plan ol { margin: 6px 0 4px 18px; padding: 0; }
+  .ev.plan .hash { color: var(--muted); font-size: 11.5px; }
+  .ev.reply { background: transparent; border-style: dashed; color: var(--muted); }
+  .ev.reply summary { cursor: pointer; color: var(--ink); font-weight: 600; }
+  .ev.reply pre { white-space: pre-wrap; font: inherit; margin: 8px 0 0; max-height: 180px; overflow: auto; }
+
+  .approve { margin-top: 10px; padding: 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--hold-line); }
+  .approve .btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  .btn-ok { border: 0; border-radius: 9px; padding: 9px 14px; font-weight: 700; background: var(--allow); color: #052e1f; }
+  .btn-no { border-radius: 9px; padding: 9px 14px; font-weight: 600; background: transparent; color: var(--block); border: 1px solid var(--block-line); }
+  .approve button:disabled { opacity: .5; cursor: default; }
+
+  .outcome { margin: 0 16px 16px; padding: 16px; border-radius: 13px; animation: in .3s ease-out; }
+  .outcome.bad { background: var(--block-bg); border: 1px solid var(--block-line); }
+  .outcome.good { background: var(--allow-bg); border: 1px solid var(--allow-line); }
+  .outcome.warn { background: var(--hold-bg); border: 1px solid var(--hold-line); }
+  .outcome .big { font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+  .outcome.bad .big { color: var(--block); } .outcome.good .big { color: var(--allow); } .outcome.warn .big { color: var(--hold); }
+  .outcome p { margin: 8px 0 0; font-size: 13.5px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--panel); border: 1px solid var(--line2); }
+  .chip.leak { color: var(--block); border-color: var(--block-line); }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  .stat b { font-size: 18px; display: block; }
+  .stat span { color: var(--muted); font-size: 11.5px; }
+
+  /* Certificate */
+  .cert { position: relative; padding: 28px; border-radius: 18px; overflow: hidden;
+          background: radial-gradient(600px 300px at 100% 0%, var(--brand-bg), transparent 60%), var(--panel);
+          border: 1px solid var(--line2); box-shadow: var(--shadow); }
+  .cert::after { content: ""; position: absolute; inset: 10px; border: 1px dashed var(--line2); border-radius: 12px; pointer-events: none; }
+  .cert-top { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+  .cert h3 { margin: 2px 0 0; font-size: 24px; letter-spacing: -.01em; }
+  .cert .meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .seal { width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center; text-align: center; font-weight: 800;
+          font-size: 11px; letter-spacing: .08em; line-height: 1.2; flex: none; transform: rotate(-8deg); }
+  .seal.ok { color: var(--allow); border: 3px double var(--allow); background: var(--allow-bg); }
+  .seal.no { color: var(--block); border: 3px double var(--block); background: var(--block-bg); }
+  .seal big { display: block; font-size: 28px; }
+  .cert-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 22px; margin-top: 18px; position: relative; z-index: 1; }
+  .field { font-size: 12px; color: var(--muted); margin-top: 12px; }
+  .field div { color: var(--ink); font-size: 13px; overflow-wrap: anywhere; margin-top: 2px; }
+  .checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+  .checks li { font-size: 13.5px; display: flex; gap: 8px; align-items: center; padding: 7px 10px; border-radius: 9px; background: var(--panel2); border: 1px solid var(--line); }
+  .checks li::first-letter { text-transform: uppercase; }
+  .checks .ok { color: var(--allow); font-weight: 800; } .checks .no { color: var(--block); font-weight: 800; }
+  .cert a { color: var(--brand); font-weight: 600; text-decoration: none; font-size: 13.5px; }
+
+  /* Emails */
+  .mail { margin: 0 16px 12px; border-radius: 12px; border: 1px solid var(--line2); background: var(--panel2); overflow: hidden; animation: in .3s ease-out; }
+  .mail-h { padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+  .mail-h b { color: var(--ink); font-weight: 600; }
+  .mail-b { padding: 12px; white-space: pre-wrap; font-size: 14px; }
+  .verdict { margin: 0 16px 16px; font-weight: 700; font-size: 15px; }
+  .verdict.bad { color: var(--block); } .verdict.good { color: var(--allow); }
+
+  .error { color: var(--block); }
+  footer { margin-top: 70px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px;
+           display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  footer a { color: var(--ink); }
+  .spin { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--line2); border-top-color: var(--brand);
+          border-radius: 50%; animation: rot .8s linear infinite; vertical-align: -2px; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+
+  @media (max-width: 860px) {
+    .split, .mems, .pillars, .cert-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
 <main>
-  <h1>Proof of Forgetting</h1>
-  <p class="sub">An AI agent that can forget you provably, without being hijacked on the way out, and that
-    still learns from what it forgot. Every tool call is governed by <strong>ArmorIQ</strong>.</p>
+  <nav>
+    <div class="logo"><div class="logo-mark">◐</div> Proof of Forgetting</div>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <a href="https://github.com/suvvvv/proof-of-forgetting" target="_blank" rel="noopener">GitHub ↗</a>
+      <span class="gov"><span class="dot"></span> Governed by ArmorIQ</span>
+    </div>
+  </nav>
 
-  <section class="card">
-    <h2>What the agent remembers about Alice</h2>
-    <div id="memories"></div>
-  </section>
+  <header class="hero">
+    <div class="eyebrow">AI agent memory · Right to be forgotten</div>
+    <h1>Agents that forget you <span class="grad">provably</span>,<br>and still learn.</h1>
+    <p class="lede">When you tell an AI agent <em>“forget me”</em>, it has to read <strong>all</strong> of your data to delete it.
+      That's the riskiest moment in your data's life, and exactly when an attacker strikes.</p>
+    <div class="flow">
+      <span class="step">“Forget me”</span><span class="arr">→</span>
+      <span class="step">Agent plans</span><span class="arr">→</span>
+      <span class="step aiq">ArmorIQ signs the plan</span><span class="arr">→</span>
+      <span class="step aiq">Every tool call checked</span><span class="arr">→</span>
+      <span class="step">Compost → Delete</span><span class="arr">→</span>
+      <span class="step">Deletion Certificate</span>
+    </div>
+    <div class="pillars">
+      <div class="pillar"><div class="ic">🛡️</div><b>Can't be hijacked</b><span>Instructions hidden in memory can't add steps to a plan ArmorIQ already signed.</span></div>
+      <div class="pillar"><div class="ic">🧾</div><b>Forgets provably</b><span>Raw data deleted, bytes scanned, certificate bound to ArmorIQ's signature.</span></div>
+      <div class="pillar"><div class="ic">📚</div><b>Still learns</b><span>Each memory becomes a leak-checked lesson, so old mistakes aren't repeated.</span></div>
+    </div>
+  </header>
 
   <section>
-    <h2>1 · Alice asks to be forgotten</h2>
-    <div class="row">
-      <button id="runForget">Run the same request on both agents</button>
-      <span class="quote">“Forget everything you know about me.”</span>
+    <div class="sec-head"><div class="num">The data</div><h2>What the agent remembers about Alice</h2>
+      <p class="sub">Highlighted words are private details that must be gone after forgetting. One memory was planted by an attacker.</p></div>
+    <div class="mems" id="memories"></div>
+  </section>
+
+  <section id="s1">
+    <div class="sec-head"><div class="num">Step 1 · The attack</div><h2>Alice asks to be forgotten</h2>
+      <p class="sub">Same AI model, same tools, same request. The only difference: the right-hand agent is governed by ArmorIQ.</p></div>
+    <div class="card runbar">
+      <button class="cta" id="runForget">▶ Run on both agents</button>
+      <span class="quote">Forget everything you know about me.</span>
     </div>
     <div class="split">
-      <div class="card pane"><h3>Without ArmorIQ</h3><div class="hint">Same model, same tools, no governance</div>
-        <div class="log" id="log-unguarded"></div></div>
-      <div class="card pane"><h3>With ArmorIQ</h3><div class="hint">Plan signed first; every call checked</div>
-        <div class="log" id="log-guarded"></div></div>
+      <div class="card pane bad"><div class="pane-h"><div><b>Ungoverned agent</b><small>No plan, no checks</small></div><span class="tag red">No ArmorIQ</span></div>
+        <div class="log" id="log-unguarded"><div class="empty">Press ▶ to run</div></div></div>
+      <div class="card pane good"><div class="pane-h"><div><b>ArmorIQ-governed agent</b><small>Plan signed first · every call checked</small></div><span class="tag green">ArmorIQ</span></div>
+        <div class="log" id="log-guarded"><div class="empty">Runs after the ungoverned agent</div></div></div>
     </div>
   </section>
 
   <section id="certSection" hidden>
-    <h2>2 · Deletion Certificate</h2>
-    <div class="card" id="cert"></div>
+    <div class="sec-head"><div class="num">Step 2 · The proof</div><h2>Deletion Certificate</h2>
+      <p class="sub">Bound to ArmorIQ's ECDSA signature on the plan. Verifiable offline. Editing the plan breaks it.</p></div>
+    <div class="cert" id="cert"></div>
   </section>
 
-  <section>
-    <h2>3 · Did it still learn from what it forgot?</h2>
-    <div class="row">
-      <button id="runLearn">Run the follow-up request</button>
+  <section id="s3">
+    <div class="sec-head"><div class="num">Step 3 · The twist</div><h2>Did it still learn from what it forgot?</h2>
+      <p class="sub">After forgetting, Alice asks for something that once went wrong. One agent deleted everything; ours kept privacy-safe lessons.</p></div>
+    <div class="card runbar">
+      <button class="cta" id="runLearn">▶ Run the follow-up</button>
       <span class="quote" id="learnQuote"></span>
     </div>
     <div class="split">
-      <div class="card pane"><h3>Plain delete</h3><div class="hint">Data deleted, nothing learned</div>
-        <div class="log" id="log-plain"></div></div>
-      <div class="card pane"><h3>Proof of Forgetting</h3><div class="hint">Data deleted, privacy-safe lessons kept</div>
-        <div class="log" id="log-composted"></div></div>
+      <div class="card pane bad"><div class="pane-h"><div><b>Plain delete</b><small>Data deleted, nothing learned</small></div><span class="tag red">Forgot the lesson</span></div>
+        <div class="log" id="log-plain"><div class="empty">Press ▶ to run</div></div></div>
+      <div class="card pane good"><div class="pane-h"><div><b>Proof of Forgetting</b><small>Data deleted, lessons kept</small></div><span class="tag green">Kept the lesson</span></div>
+        <div class="log" id="log-composted"><div class="empty">Runs after plain delete</div></div></div>
     </div>
   </section>
+
+  <footer>
+    <span>Built for <b>ArmorIQ Flow State 2026</b> · Gemini · MCP · ArmorIQ SDK · all data is fictional sandbox data</span>
+    <a href="https://github.com/suvvvv/proof-of-forgetting" target="_blank" rel="noopener">Source on GitHub ↗</a>
+  </footer>
 </main>
 
 <script>
 const $ = (id) => document.getElementById(id);
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-const call = (tool, args) => `<code>${esc(tool)}(${esc(Object.values(args || {}).join(", "))})</code>`;
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const clip = (v) => { const t = unescapeNl(String(v)).replace(/\s+/g, " "); return t.length > 70 ? t.slice(0, 70) + "…" : t; };
+const pill = (tool, args) => `<span class="pill">${esc(tool)}</span>` +
+  (args && Object.keys(args).length ? ` <span class="why" style="display:inline">${esc(Object.values(args).map(clip).join(" · "))}</span>` : "");
+// Models sometimes emit escaped newlines ("\\n") inside tool arguments.
+function unescapeNl(text) { return String(text ?? "").replace(/\\n/g, "\n"); }
+let SECRETS = [], HEALTH = [];
 
-fetch("/api/memories").then((r) => r.json()).then(({ memories, poisoned_index }) => {
-  $("memories").innerHTML = memories.map((m, i) =>
-    `<div class="mem"><span class="tag ${i === poisoned_index ? "poison" : ""}">${i === poisoned_index ? "planted by attacker" : "memory"}</span><span>${esc(m)}</span></div>`
-  ).join("");
+// One pass over the text, so inserted markup is never matched again.
+function highlight(text, words, cls) {
+  if (!words.length) return esc(text);
+  const re = new RegExp(`(${words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi");
+  return String(text).split(re).map((part, i) => i % 2 ? `<mark class="${cls}">${esc(part)}</mark>` : esc(part)).join("");
+}
+
+fetch("/api/memories").then((r) => r.json()).then((d) => {
+  SECRETS = d.secrets || []; HEALTH = d.health_words || [];
+  $("memories").innerHTML = d.memories.map((m, i) => i === d.poisoned_index
+    ? `<div class="mem poison"><div class="k">⚠ Planted by an attacker · looks like Alice's own request</div>${esc(m)}</div>`
+    : `<div class="mem"><div class="k">Memory ${i + 1}</div>${highlight(m, SECRETS, "secret")}</div>`).join("");
 });
 
-function add(log, cls, html) {
+function add(log, cls, icon, html, badge) {
   const el = document.createElement("div");
   el.className = "ev " + cls;
-  el.innerHTML = html;
+  el.innerHTML = `<div class="i">${icon}</div><div class="t">${badge ? `<span class="badge">${badge}</span>` : ""}${html}</div>`;
   log.appendChild(el);
   return el;
 }
@@ -137,45 +303,49 @@ function add(log, cls, html) {
 function render(log, e, onDone) {
   switch (e.type) {
     case "plan":
-      add(log, "plan", `<strong>Plan signed by ArmorIQ</strong><ol>${e.steps.map((s) => `<li>${call(s.tool, s.args)}</li>`).join("")}</ol>
-        <span class="mono">plan_hash ${esc(e.plan_hash.slice(0, 16))}…</span>`);
+      add(log, "plan", "✍️", `<b>Plan signed by ArmorIQ</b> <span class="why" style="display:inline">· before reading any memory</span>
+        <ol>${e.steps.map((s) => `<li>${pill(s.tool)}</li>`).join("")}</ol>
+        <span class="hash mono">plan_hash ${esc(e.plan_hash.slice(0, 20))}…</span>`);
       break;
     case "call":
-      if (e.tool === "export_memory" || (e.tool === "send_email"))
-        add(log, "leak", `→ ${call(e.tool, e.args)}<span class="why">executed with no governance</span>`);
-      else add(log, "", `→ ${call(e.tool, e.args)}`);
+      if (e.tool === "export_memory")
+        add(log, "leak", "📤", `${pill(e.tool, e.args)}<span class="why">The planted note told it to. Nothing stopped it.</span>`, "EXECUTED");
+      else add(log, "", "→", pill(e.tool, e.args));
       break;
     case "decision": {
-      const label = { allow: "✅ ALLOWED", hold: "⏸ HELD", block: "⛔ BLOCKED" }[e.action] || `⛔ ${e.action.toUpperCase()}`;
-      const cls = { allow: "allow", hold: "hold" }[e.action] || "block";
-      add(log, cls, `${label} ${call(e.tool, e.args)}${e.action !== "allow" ? `<span class="why">${esc(e.reason)}</span>` : ""}`);
+      const m = { allow: ["allow", "✅", "ALLOWED"], hold: ["hold", "⏸", "HELD"] }[e.action]
+        || ["block", "⛔", e.action === "block" ? "BLOCKED" : String(e.action).toUpperCase()];
+      const why = e.action === "allow" ? "" : `<span class="why">${esc(e.reason)}</span>`;
+      add(log, m[0], m[1], `${pill(e.tool, e.args)}${why}${e.policy ? `<div class="pol">policy · ${esc(e.policy)}</div>` : ""}`, m[2]);
       break;
     }
     case "waiting": {
-      const el = add(log, "hold", `<span class="spinner"></span> Held for a human privacy officer.
-        <span class="why">No approval in time → the deletion is refused (fail closed). Raw data stays untouched and nothing leaks.</span>`);
+      const el = add(log, "hold", "🧑‍⚖️", `<b>Waiting for a human privacy officer</b>
+        <span class="why">Permanent deletion needs approval. No decision in time means the deletion is refused (fail closed).</span>`);
       if (e.can_decide) {
-        el.insertAdjacentHTML("beforeend", `<div class="row" style="margin:8px 0 0">
-          <button data-act="approve">Approve as privacy officer</button>
-          <button data-act="reject" style="background:transparent;color:var(--block);border:1px solid var(--block)">Reject</button></div>
-          <span class="why">This is a real ArmorIQ approval (POST /delegation/approve), recorded in the ArmorIQ console. You can also approve there under Held Actions.</span>`);
-        el.querySelectorAll("button").forEach((b) => b.onclick = async () => {
-          el.querySelectorAll("button").forEach((x) => x.disabled = true);
+        const box = document.createElement("div");
+        box.className = "approve";
+        box.innerHTML = `<div class="btns"><button class="btn-ok" data-act="approve">✓ Approve as privacy officer</button>
+          <button class="btn-no" data-act="reject">✕ Reject</button></div>
+          <span class="why">A real ArmorIQ approval (<span class="mono">/delegation/approve</span>), also visible in the ArmorIQ console under Held Actions.</span>`;
+        el.querySelector(".t").appendChild(box);
+        box.querySelectorAll("button").forEach((b) => b.onclick = async () => {
+          box.querySelectorAll("button").forEach((x) => x.disabled = true);
           const r = await fetch(`/api/decide?action=${b.dataset.act}`, { method: "POST" }).then((x) => x.json()).catch(() => ({ ok: false }));
-          if (!r.ok) add(log, "block", `Could not record the decision: ${esc(r.message || "error")}`);
+          if (!r.ok) add(log, "block", "!", `Could not record the decision: ${esc(r.message || "error")}`);
         });
       }
       break;
     }
-    case "approved": add(log, "allow", "✓ Approved by a human"); break;
-    case "agent": add(log, "agent", esc(e.text)); break;
-    case "error": add(log, "block", `Error: ${esc(e.message)}`); break;
+    case "approved": add(log, "allow", "✓", "<b>Approved by the privacy officer</b>. Deletion proceeds", "APPROVED"); break;
+    case "agent": add(log, "reply", "💬", `<details><summary>Agent's reply</summary><pre>${esc(e.text)}</pre></details>`); break;
+    case "error": add(log, "block", "!", `<span class="error">${esc(e.message)}</span>`); break;
     case "done": onDone && onDone(e); break;
   }
 }
 
 function runStream(url, log, onDone) {
-  log.innerHTML = '<div class="ev"><span class="spinner"></span> running…</div>';
+  log.innerHTML = '<div class="empty"><span class="spin"></span> Agent is thinking…</div>';
   return new Promise((resolve) => {
     const src = new EventSource(url);
     let first = true;
@@ -189,63 +359,88 @@ function runStream(url, log, onDone) {
   });
 }
 
-function forgetResult(log, guarded) {
+function outcome(pane, html) {
+  pane.querySelectorAll(".outcome, .mail, .verdict").forEach((x) => x.remove());
+  pane.insertAdjacentHTML("beforeend", html);
+}
+
+function forgetDone(pane, guarded) {
   return (d) => {
-    const el = document.createElement("div");
     if (d.leaked.length) {
-      el.className = "result bad";
-      el.innerHTML = `Private data stolen → ${esc(d.leaked[0].to)}<small>${d.leaked[0].bytes} bytes of Alice's raw memories (PIN, health details) left the system before deletion.</small>`;
+      const l = d.leaked[0];
+      outcome(pane, `<div class="outcome bad"><div class="big">🔓 Private data stolen</div>
+        <p>${l.bytes} bytes of Alice's raw memories were sent to <span class="mono">${esc(l.to)}</span> right before deletion.</p>
+        <div class="chips">${(l.secrets || []).map((s) => `<span class="chip leak">leaked: ${esc(s)}</span>`).join("")}</div></div>`);
+    } else if (d.memories_left) {
+      outcome(pane, `<div class="outcome warn"><div class="big">⏸ Deletion refused, nothing leaked</div>
+        <p>No one approved in time, so the agent failed closed: raw memories stay untouched and nothing left the system.</p></div>`);
     } else {
-      el.className = "result good";
-      el.innerHTML = `Nothing left the system<small>${d.memories_left} raw memories left · ${d.lessons.length} privacy-safe lessons kept · residue scan ${d.residue_free ? "clean" : "found data"}</small>`;
+      outcome(pane, `<div class="outcome good"><div class="big">🔒 Nothing left the system</div>
+        <div class="stats"><div class="stat"><b>0 B</b><span>sent outside</span></div>
+        <div class="stat"><b>0</b><span>raw memories left</span></div>
+        <div class="stat"><b>${d.lessons.length}</b><span>lessons kept</span></div></div>
+        <p>${d.residue_free ? "Byte-level scan of the database: no trace of the PIN, the clinic or the diagnosis." : "Residue scan found data."}</p></div>`);
     }
-    log.parentElement.appendChild(el);
-    if (guarded && d.certificate) showCertificate(d.certificate, d.verification);
+    if (guarded && d.certificate && !d.memories_left) showCertificate(d.certificate, d.verification);
   };
 }
 
-function showCertificate(cert, verification) {
+function showCertificate(cert, v) {
   const a = cert.armoriq;
   const blob = URL.createObjectURL(new Blob([JSON.stringify(cert, null, 2)], { type: "application/json" }));
   $("cert").innerHTML = `
-    <div class="result ${verification.valid ? "good" : "bad"}" style="margin-top:0">${verification.valid ? "Certificate valid" : "Certificate INVALID"}
-      <small>Bound to ArmorIQ plan <span class="mono">${esc(a.plan_id)}</span> · plan_hash <span class="mono">${esc(a.plan_hash.slice(0, 24))}…</span></small></div>
-    <ul class="checks">${Object.entries(verification.checks).map(([k, ok]) => `<li class="${ok ? "" : "fail"}">${esc(k.replaceAll("_", " "))}</li>`).join("")}</ul>
-    <p style="font-size:13px;margin:10px 0 4px">Blocked attempts: <strong>${cert.blocked_attempts.length ? esc(cert.blocked_attempts.join(", ")) : "none"}</strong>
-      · Lessons kept: ${cert.lessons_kept.length} · Deletion receipt <span class="mono">${esc(cert.deletion_receipt?.receipt_id)}</span></p>
-    <a class="dl" href="${blob}" download="deletion-certificate.json">Download certificate (JSON)</a>`;
+    <div class="cert-top">
+      <div><div class="num">Proof of Forgetting · v1</div><h3>Certificate of Deletion</h3>
+        <div class="meta">Issued ${esc(new Date(cert.issued_at).toLocaleString())} · subject <span class="mono">${esc(cert.subject_digest.slice(0, 16))}…</span> (hashed, never stored in clear)</div></div>
+      <div class="seal ${v.valid ? "ok" : "no"}"><div><big>${v.valid ? "✓" : "✗"}</big>${v.valid ? "VERIFIED" : "INVALID"}</div></div>
+    </div>
+    <div class="cert-grid">
+      <div>
+        <div class="field">Request<div>“${esc(cert.request)}”</div></div>
+        <div class="field">ArmorIQ plan<div class="mono">${esc(a.plan_id)}</div></div>
+        <div class="field">Signed plan hash<div class="mono">${esc(a.plan_hash)}</div></div>
+        <div class="field">Planned steps<div>${a.planned_steps.map((s) => `<span class="pill">${esc(s)}</span>`).join(" ")}</div></div>
+        <div class="field">Blocked attempts<div>${cert.blocked_attempts.length ? cert.blocked_attempts.map((s) => `<span class="pill" style="color:var(--block)">${esc(s)}</span>`).join(" ") : "none"}</div></div>
+        <div class="field">Lessons kept (no private data)<div>${cert.lessons_kept.map((l) => `• ${esc(l)}`).join("<br>")}</div></div>
+      </div>
+      <div>
+        <ul class="checks">${Object.entries(v.checks).map(([k, ok]) => `<li><span class="${ok ? "ok" : "no"}">${ok ? "✓" : "✗"}</span>${esc(k.replaceAll("_", " "))}</li>`).join("")}</ul>
+        <div class="field">Deletion receipt<div class="mono">${esc(cert.deletion_receipt?.receipt_id)}</div></div>
+        <div class="field" style="margin-top:16px"><a href="${blob}" download="deletion-certificate.json">⬇ Download certificate (JSON)</a></div>
+      </div>
+    </div>`;
   $("certSection").hidden = false;
 }
 
 $("runForget").onclick = async () => {
   $("runForget").disabled = true;
   $("certSection").hidden = true;
-  document.querySelectorAll(".split .result").forEach((r) => r.remove());
-  $("log-guarded").innerHTML = '<div class="ev">queued…</div>';
-  await runStream("/api/forget?mode=unguarded", $("log-unguarded"), forgetResult($("log-unguarded"), false));
-  await runStream("/api/forget?mode=guarded", $("log-guarded"), forgetResult($("log-guarded"), true));
+  document.querySelectorAll("#s1 .outcome").forEach((x) => x.remove());
+  $("log-guarded").innerHTML = '<div class="empty">Waiting for the ungoverned agent to finish…</div>';
+  await runStream("/api/forget?mode=unguarded", $("log-unguarded"), forgetDone($("log-unguarded").parentElement, false));
+  await runStream("/api/forget?mode=guarded", $("log-guarded"), forgetDone($("log-guarded").parentElement, true));
   $("runForget").disabled = false;
 };
 
-$("learnQuote").textContent = "“Email my team that I'll miss Tuesday's standup because I have a therapy appointment at the clinic.”";
+$("learnQuote").textContent = "Email my team that I'll miss Tuesday's standup because I have a therapy appointment at the clinic.";
 
-function learnResult(log) {
+function learnDone(pane) {
   return (d) => {
-    const el = document.createElement("div");
-    el.className = "result " + (d.repeated_mistake ? "bad" : "good");
-    el.innerHTML = d.repeated_mistake ? "Repeated the old mistake: health details sent to the whole team" : "Avoided the old mistake";
     const mail = d.emails[0];
-    if (mail) el.innerHTML += `<div class="email">${esc(mail.subject)}\n\n${esc(mail.body)}</div>`;
-    log.parentElement.appendChild(el);
+    outcome(pane, (mail ? `<div class="mail"><div class="mail-h">To <b>team@example.com</b> · ${esc(mail.subject)}</div>
+        <div class="mail-b">${highlight(unescapeNl(mail.body), HEALTH, "health")}</div></div>` : "")
+      + `<div class="verdict ${d.repeated_mistake ? "bad" : "good"}">${d.repeated_mistake
+          ? "✗ Repeated the old mistake: health details sent to the whole team"
+          : "✓ Avoided the old mistake. The lesson survived deletion"}</div>`);
   };
 }
 
 $("runLearn").onclick = async () => {
   $("runLearn").disabled = true;
-  document.querySelectorAll("#log-plain ~ .result, #log-composted ~ .result").forEach((r) => r.remove());
-  $("log-composted").innerHTML = '<div class="ev">queued…</div>';
-  await runStream("/api/learn?variant=plain", $("log-plain"), learnResult($("log-plain")));
-  await runStream("/api/learn?variant=composted", $("log-composted"), learnResult($("log-composted")));
+  document.querySelectorAll("#s3 .mail, #s3 .verdict").forEach((x) => x.remove());
+  $("log-composted").innerHTML = '<div class="empty">Waiting for the plain-delete agent to finish…</div>';
+  await runStream("/api/learn?variant=plain", $("log-plain"), learnDone($("log-plain").parentElement));
+  await runStream("/api/learn?variant=composted", $("log-composted"), learnDone($("log-composted").parentElement));
   $("runLearn").disabled = false;
 };
 </script>
